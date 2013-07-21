@@ -129,7 +129,7 @@ sub S_public {
         $irc->yield(
             notice => $$channel,
             $reply,
-        );
+        ) if $self->{reply_with_url};
 
         1;
     } or do {

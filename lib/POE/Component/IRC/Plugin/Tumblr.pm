@@ -73,6 +73,10 @@ sub S_public {
         type  => 'text',
         title => $title,
         body  => "&lt;$nick&gt; " . $$message,
+
+        # make it possible to import old entries from e.g. logs
+        # see e.g. contrib/log-importer-irssi.pl for an usage
+        exists $self->{date} ? ( date => $self->{date} ) : (),
     );
 
     if ( $capture_url =~ m# (https?:// (?:(?:www\.)?youtube\.com | youtu\.be) / \S+ ) #ix ) {

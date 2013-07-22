@@ -50,7 +50,7 @@ sub S_public {
         nick => $nick,
         channel => $channel,
         message => $message,
-    });
+    }) if $debug;
 
     unless ( $$message =~ m#(.*) (https?:// [\S]+) (.*)#ix ) {
         return PCI_EAT_NONE;
@@ -59,7 +59,7 @@ sub S_public {
     $post =~ s/ \s* \# \s* //x;
     s/^\s+// for $pre, $post;
     s/\s+$// for $pre, $post;
-    warn "considering it ($pre)($$message)($post)\n";
+    warn "considering it ($pre)($$message)($post)\n" if $debug;
 
     my $title = '';
     if ( $pre ){
@@ -108,7 +108,7 @@ sub S_public {
         ) if $debug;
     }
 
-    warn "posting '$post_args{body}'\n";
+    warn "posting '$post_args{body}'\n" if $debug;
 
     eval {
         my $post = $self->{tumblr}->post(

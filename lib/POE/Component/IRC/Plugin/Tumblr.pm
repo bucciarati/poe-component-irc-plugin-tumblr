@@ -8,19 +8,21 @@ use Data::Dumper;
 use POE::Component::IRC;
 use POE::Component::IRC::Plugin qw( :ALL );
 
-use WWW::TumblrV2;
-use JSON qw( from_json );
+use HTML::Entities ();
+use Encode ();
 
-my $debug = 0;
+use WWW::Tumblr;
+use JSON qw( from_json );
 
 sub new {
     my ($package, %args) = @_;
 
     my $self = bless \%args, $package;
 
-    $self->{tumblr} = WWW::TumblrV2->new(
+    $self->{tumblr} = WWW::Tumblr->new(
             %args,
     );
+    $self->{blog} = $self->{tumblr}->blog($args{blog});
 
     return $self;
 }
@@ -46,20 +48,18 @@ sub S_public {
     my $channel = shift;
     my $message = shift;
 
-    warn Dumper({
-        nick => $nick,
-        channel => $channel,
-        message => $message,
-    }) if $debug;
+    my $text = $$message;
+    Encode::_utf8_on( $text );
+    $text = HTML::Entities::encode_entities($text);
 
-    unless ( $$message =~ m#(.*) (https?:// [\S]+) (.*)#ix ) {
+    unless ( $text =~ m#(.*) (https?:// [\S]+) (.*)#ix ) {
         return PCI_EAT_NONE;
     }
     my ($pre, $capture_url, $post) = ($1, $2, $3);
     $post =~ s/ \s* \# \s* //x;
     s/^\s+// for $pre, $post;
     s/\s+$// for $pre, $post;
-    warn "considering it ($pre)($$message)($post)\n" if $debug;
+    warn "considering it ($pre)($text)($post)\n" if $self->{debug};
 
     my $title = '';
     if ( $pre ){
@@ -72,7 +72,7 @@ sub S_public {
     my %post_args = (
         type  => 'text',
         title => $title,
-        body  => "&lt;$nick&gt; " . $$message,
+        body  => "&lt;$nick&gt; " . $text,
 
         # make it possible to import old entries from e.g. logs
         # see e.g. contrib/log-importer-irssi.pl for an usage
@@ -84,56 +84,36 @@ sub S_public {
 
         $post_args{type} = 'video';
         $post_args{embed} = $vid_url;
-        $post_args{caption} = "&lt;$nick&gt; " . $$message;
-
-        $irc->yield(
-            notice => $$channel,
-            "posting Youtube video at '$vid_url'"
-        ) if $debug;
+        $post_args{caption} = "&lt;$nick&gt; " . $text;
     } elsif ( $capture_url =~ m# \. ( jpe?g | gif | png ) \z #ix ) {
 
         $post_args{type} = 'photo';
-        $post_args{caption} = "&lt;$nick&gt; " . $$message;
+        $post_args{caption} = "&lt;$nick&gt; " . $text;
         $post_args{source} = $capture_url;
-
-        $irc->yield(
-            notice => $$channel,
-            "posting pic at '$capture_url'"
-        ) if $debug;
-    } elsif ( $capture_url =~ m# https?://paste\.debian\.net / #ix ) {
-        $irc->yield(
-            notice => $$channel,
-            "posting TEXT message from '$$message'",
-        ) if $debug;
-    } else {
-        $irc->yield(
-            notice => $$channel,
-            "posting URL in message '$post_args{body}'",
-        ) if $debug;
     }
 
-    warn "posting '$post_args{body}'\n" if $debug;
+    warn "posting <@{[ Dumper(\%post_args) ]}>\n" if $self->{debug};
 
     eval {
-        my $post = $self->{tumblr}->post(
+        my $response = $self->{blog}->post(
             %post_args,
         );
 
-        my $response = from_json( $post );
-        my $reply = '';
-
-        if ( $response->{meta}{msg} eq 'Created' ){
-            my $id = $response->{response}{id};
-
-            $reply = "Posted at http://$self->{blog}/post/$id",
+        if ( my $id = $response->{id} ){
+            # seems to have succeeded
+            $irc->yield(
+                notice => $$channel,
+                "Posted at http://@{[ $self->{blog}->base_hostname ]}/post/$id",
+            ) if $self->{reply_with_url};
         } else {
-            $reply = "Unrecognized response: [$response]"
-        }
+            my $debug = Data::Dumper::Dumper( $response );
+            $debug =~ s/\n/ /g;
 
-        $irc->yield(
-            notice => $$channel,
-            $reply,
-        ) if $self->{reply_with_url};
+            $irc->yield(
+                notice => $$channel,
+                "Unrecognized response: [$debug]"
+            );
+        }
 
         1;
     } or do {

@@ -50,7 +50,6 @@ sub S_public {
 
     my $text = $$message;
     Encode::_utf8_on( $text );
-    $text = HTML::Entities::encode_entities($text);
 
     unless ( $text =~ m#(.*) (https?:// [\S]+) (.*)#ix ) {
         return PCI_EAT_NONE;
@@ -72,7 +71,8 @@ sub S_public {
     my %post_args = (
         type  => 'text',
         title => $title,
-        body  => "&lt;$nick&gt; " . $text,
+        body  => "<$nick> $text",
+        caption => "<$nick> $text",
 
         # make it possible to import old entries from e.g. logs
         # see e.g. contrib/log-importer-irssi.pl for an usage
@@ -84,14 +84,16 @@ sub S_public {
 
         $post_args{type} = 'video';
         $post_args{embed} = $vid_url;
-        $post_args{caption} = "&lt;$nick&gt; " . $text;
     } elsif ( $capture_url =~ m# \. ( jpe?g | gif | png ) \z #ix ) {
 
         $post_args{type} = 'photo';
-        $post_args{caption} = "&lt;$nick&gt; " . $text;
         $post_args{source} = $capture_url;
     }
 
+    $post_args{$_} = HTML::Entities::encode_entities($post_args{$_}) for qw(
+        body
+        caption
+    );
     warn "posting <@{[ Dumper(\%post_args) ]}>\n" if $self->{debug};
 
     eval {

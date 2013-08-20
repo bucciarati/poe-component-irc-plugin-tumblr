@@ -107,6 +107,11 @@ sub S_public {
                 notice => $$channel,
                 "Posted at http://@{[ $self->{blog}->base_hostname ]}/post/$id",
             ) if $self->{reply_with_url};
+        } elsif ( my $error = $self->{blog}->error ) {
+            $irc->yield(
+                notice => $$channel,
+                "Tumblr returned an error while posting: [@{[ $error->reasons ]}]"
+            );
         } else {
             my $debug = Data::Dumper::Dumper( $response );
             $debug =~ s/\n/ /g;

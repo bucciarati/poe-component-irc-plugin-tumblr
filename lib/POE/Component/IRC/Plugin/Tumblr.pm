@@ -125,7 +125,7 @@ sub S_public {
 
         $irc->yield(
             notice => $$channel,
-            "->post() error: [$error_text]",
+            "->post() died: [$error_text]",
         );
     };
 

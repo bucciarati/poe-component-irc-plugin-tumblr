@@ -110,7 +110,7 @@ sub S_public {
         } elsif ( my $error = $self->{blog}->error ) {
             $irc->yield(
                 notice => $$channel,
-                "Tumblr returned an error while posting: [@{[ $error->reasons ]}]"
+                "Tumblr returned an error while posting: [@{ $error->reasons }]"
             );
         } else {
             my $debug = Data::Dumper::Dumper( $response );

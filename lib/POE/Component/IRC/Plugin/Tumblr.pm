@@ -56,8 +56,7 @@ sub S_public {
     }
     my ($pre, $capture_url, $post) = ($1, $2, $3);
     $post =~ s/ \s* \# \s* //x;
-    s/^\s+// for $pre, $post;
-    s/\s+$// for $pre, $post;
+    s/^\s+//, s/\s+$// for $pre, $post;
     warn "considering it ($pre)($text)($post)\n" if $self->{debug};
 
     my $title = '';
@@ -67,6 +66,7 @@ sub S_public {
     if ( $post ){
         $title .= " $post";
     }
+    s/^\s+//, s/\s+$// for $title;
 
     my %post_args = (
         type  => 'text',

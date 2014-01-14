@@ -91,6 +91,7 @@ sub S_public {
     }
 
     $post_args{$_} = HTML::Entities::encode_entities($post_args{$_}) for qw(
+        title
         body
         caption
     );

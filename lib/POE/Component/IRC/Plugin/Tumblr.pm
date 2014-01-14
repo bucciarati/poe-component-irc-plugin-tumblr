@@ -68,11 +68,23 @@ sub S_public {
     }
     s/^\s+//, s/\s+$// for $title;
 
+    my $tags_spec = '';
+    if ( my @tags = $title =~ / \[ ([^\]]+) \] /gix ){
+        # a tag of [otr] (case insensitive) means that we
+        # should *NOT* publish the URL, it's off the record.
+        if ( grep +(lc $_ eq "otr"), @tags ){
+            return PCI_EAT_NONE;
+        }
+
+        $tags_spec = join ',', @tags;
+    }
+
     my %post_args = (
         type  => 'text',
         title => $title,
         body  => "<$nick> $text",
         caption => "<$nick> $text",
+        tags  => $tags_spec,
 
         # make it possible to import old entries from e.g. logs
         # see e.g. contrib/log-importer-irssi.pl for an usage
@@ -94,6 +106,7 @@ sub S_public {
         title
         body
         caption
+        tags
     );
     warn "posting <@{[ Dumper(\%post_args) ]}>\n" if $self->{debug};
 

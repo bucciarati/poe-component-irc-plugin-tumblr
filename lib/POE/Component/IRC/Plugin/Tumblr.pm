@@ -108,10 +108,26 @@ sub S_public {
                 "Posted at http://@{[ $self->{blog}->base_hostname ]}/post/$id",
             ) if $self->{reply_with_url};
         } elsif ( my $error = $self->{blog}->error ) {
-            $irc->yield(
-                notice => $$channel,
-                "Tumblr returned an error while posting: [@{ $error->reasons }]"
-            );
+            # posting big (>2MB) .gifs tends to fail;  retry as a text post
+            if ( $post_args{type} eq 'photo' ) {
+                $post_args{type} = 'text';
+
+                my $retry_response = $self->{blog}->post(
+                    %post_args,
+                );
+
+                if ( my $retry_error = $self->{blog}->error ) {
+                    $irc->yield(
+                        notice => $$channel,
+                        "Tumblr returned an error while posting: [@{ $error->reasons }] and while re-posting: [@{ $retry_error->reasons }]"
+                    );
+                }
+            } else {
+                $irc->yield(
+                    notice => $$channel,
+                    "Tumblr returned an error while posting: [@{ $error->reasons }]"
+                );
+            }
         } else {
             my $debug = Data::Dumper::Dumper( $response );
             $debug =~ s/\n/ /g;

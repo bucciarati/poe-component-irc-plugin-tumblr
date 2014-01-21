@@ -91,7 +91,10 @@ sub S_public {
         exists $self->{date} ? ( date => $self->{date} ) : (),
     );
 
-    if ( $capture_url =~ m# (https?:// (?:(?:www\.)?youtube\.com | youtu\.be) / \S+ ) #ix ) {
+    if (
+        $capture_url =~ m# ( https?:// (?:(?:www\.)?youtube\.com | youtu\.be) / \S+ ) #ix
+     || $capture_url =~ m# ( https?:// vimeo\.com / \S+ ) #ix
+    ) {
         my $vid_url = $1;
 
         $post_args{type} = 'video';

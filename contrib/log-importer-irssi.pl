@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use Data::Dumper ();
 
-# only used when --no-dry-run is specified
+# only used when --no-dry-run is not specified
 package Fake::Blog;
 
 sub base_hostname { 'yo_moma_dry_run' }
@@ -131,7 +131,7 @@ sub parse_day_changed {
 my $tumblr =  POE::Component::IRC::Plugin::Tumblr->new( %$tumblr_api_options );
 
 # double negatives
-unless ( !$no_dry_run ){
+unless ( $no_dry_run ){
     $tumblr->{channel_settings}{$_}{_blog} = bless {}, 'Fake::Blog' for keys $tumblr->{channel_settings};
 }
 

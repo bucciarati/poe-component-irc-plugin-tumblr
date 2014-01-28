@@ -77,6 +77,10 @@ sub S_public {
     my $text = $$message;
     Encode::_utf8_on( $text );
 
+    # make it possible to import old entries from e.g. irssi logs
+    # see e.g. contrib/log-importer-irssi.pl for an example usage
+    print "$self->{date} <$nick> $text\n" if $self->{date};
+
     unless ( $text =~ m#(.*) (https?:// [\S]+) (.*)#ix ) {
         return PCI_EAT_NONE;
     }
@@ -111,8 +115,8 @@ sub S_public {
         caption => "<$nick> $text",
         tags  => $tags_spec,
 
-        # make it possible to import old entries from e.g. logs
-        # see e.g. contrib/log-importer-irssi.pl for an usage
+        # make it possible to import old entries from e.g. irssi logs
+        # see e.g. contrib/log-importer-irssi.pl for an example usage
         exists $self->{date} ? ( date => $self->{date} ) : (),
     );
 

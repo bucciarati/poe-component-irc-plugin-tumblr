@@ -20,7 +20,7 @@ Using the `[OTR]` ("off the record") tag will prevent the bot from posting anyth
 Configuration
 =============
 
-Here's an example configuration to get you started:
+Here's an example [pocoirc](https://metacpan.org/pod/App::Pocoirc) configuration to get you started:
 
 ```YAML
 networks:

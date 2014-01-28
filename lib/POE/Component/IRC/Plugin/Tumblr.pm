@@ -17,12 +17,35 @@ use JSON qw( from_json );
 sub new {
     my ($package, %args) = @_;
 
-    my $self = bless \%args, $package;
+    my $self = bless {}, $package;
 
-    $self->{tumblr} = WWW::Tumblr->new(
-            %args,
-    );
-    $self->{blog} = $self->{tumblr}->blog($args{blog});
+    for my $channel_name ( keys %args ){
+        my $lc_channel_name = lc $channel_name;
+
+        my $this_channel_settings = ($self->{channel_settings}{$lc_channel_name} = {});
+
+        $this_channel_settings->{_tumblr} = WWW::Tumblr->new(
+            consumer_key => $args{$channel_name}->{consumer_key},
+            secret_key   => $args{$channel_name}->{secret_key},
+            token        => $args{$channel_name}->{token},
+            token_secret => $args{$channel_name}->{token_secret},
+        );
+
+        $this_channel_settings->{_blog} = $this_channel_settings->{_tumblr}->blog($args{$channel_name}->{blog});
+
+        $this_channel_settings->{debug} = $args{$channel_name}->{debug};
+        $this_channel_settings->{reply_with_url} = $args{$channel_name}->{reply_with_url};
+    }
+
+    foreach my $channel_name ( sort keys %{$self->{channel_settings}} ){
+        my $channel_settings = $self->{channel_settings}{$channel_name};
+        next unless $channel_settings->{debug};
+
+        my @settings_to_dump = sort grep !/\A_/, keys %$channel_settings;
+        warn "API for @{[ $channel_settings->{_blog}->base_hostname ]} loaded (",
+            (join ', ', map( $_ . ":" . ($channel_settings->{$_} || 0), @settings_to_dump )),
+        ")\n";
+    }
 
     return $self;
 }
@@ -45,7 +68,10 @@ sub S_public {
     my $nick = ${ +shift };
     $nick =~ s/!.*$//;
 
-    my $channel = shift;
+    my $channel = ${ +shift }->[0];
+    my $lc_channel = lc $channel;
+    my $channel_settings = $self->{channel_settings}{$lc_channel};
+
     my $message = shift;
 
     my $text = $$message;
@@ -57,7 +83,7 @@ sub S_public {
     my ($pre, $capture_url, $post) = ($1, $2, $3);
     $post =~ s/ \s* \# \s* //x;
     s/^\s+//, s/\s+$// for $pre, $post;
-    warn "considering it ($pre)($text)($post)\n" if $self->{debug};
+    warn "considering it ($pre)($text)($post)\n" if $channel_settings->{debug};
 
     my $title = '';
     if ( $pre ){
@@ -111,37 +137,37 @@ sub S_public {
         caption
         tags
     );
-    warn "posting <@{[ Dumper(\%post_args) ]}>\n" if $self->{debug};
+    warn "posting <@{[ Dumper(\%post_args) ]}>\n" if $channel_settings->{debug};
 
     eval {
-        my $response = $self->{blog}->post(
+        my $response = $channel_settings->{_blog}->post(
             %post_args,
         );
 
         if ( my $id = $response->{id} ){
             # seems to have succeeded
             $irc->yield(
-                notice => $$channel,
-                "Posted at http://@{[ $self->{blog}->base_hostname ]}/post/$id",
-            ) if $self->{reply_with_url};
-        } elsif ( my $error = $self->{blog}->error ) {
+                notice => $channel,
+                "Posted at http://@{[ $channel_settings->{_blog}->base_hostname ]}/post/$id",
+            ) if $channel_settings->{reply_with_url};
+        } elsif ( my $error = $channel_settings->{_blog}->error ) {
             # posting big (>2MB) .gifs tends to fail;  retry as a text post
             if ( $post_args{type} eq 'photo' ) {
                 $post_args{type} = 'text';
 
-                my $retry_response = $self->{blog}->post(
+                my $retry_response = $channel_settings->{_blog}->post(
                     %post_args,
                 );
 
-                if ( my $retry_error = $self->{blog}->error ) {
+                if ( my $retry_error = $channel_settings->{_blog}->error ) {
                     $irc->yield(
-                        notice => $$channel,
+                        notice => $channel,
                         "Tumblr returned an error while posting: [@{ $error->reasons }] and while re-posting: [@{ $retry_error->reasons }]"
                     );
                 }
             } else {
                 $irc->yield(
-                    notice => $$channel,
+                    notice => $channel,
                     "Tumblr returned an error while posting: [@{ $error->reasons }]"
                 );
             }
@@ -150,7 +176,7 @@ sub S_public {
             $debug =~ s/\n/ /g;
 
             $irc->yield(
-                notice => $$channel,
+                notice => $channel,
                 "Unrecognized response: [$debug]"
             );
         }
@@ -162,7 +188,7 @@ sub S_public {
         $error_text =~ s/[\r\n]/\\n/g;
 
         $irc->yield(
-            notice => $$channel,
+            notice => $channel,
             "->post() died: [$error_text]",
         );
     };

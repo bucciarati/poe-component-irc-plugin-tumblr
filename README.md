@@ -27,20 +27,30 @@ networks:
     freenode:
         server: chat.freenode.net
         local_plugins:
+            # Connector and AutoJoin not strictly required, but here for
+            # completeness since most people will want those
+            - [Connector, { reconnect: 30 }]
+            - [AutoJoin, { Channels: ['#me-and-my-friends', '##other-channel'] }]
+
             - [Tumblr, {
-                  # Required.
-                  blog: 'thischannel.tumblr.com',
+                  '#me-and-my-friends': {
+                      # Required.
+                      blog: 'thischannel.tumblr.com',
 
-                  # Required.  Register your app and get your
-                  # OAuth tokens from http://www.tumblr.com/oauth/apps
-                  consumer_key: '...',
-                  secret_key: '...',
-                  token: '...',
-                  token_secret: '...',
+                      # Required.  Register your app and get your
+                      # OAuth tokens from http://www.tumblr.com/oauth/apps
+                      consumer_key: '...',
+                      secret_key: '...',
+                      token: '...',
+                      token_secret: '...',
 
-                  # All of the following are optional.
-                  reply_with_url: true,   # defaults to false
-                  debug: true,            # defaults to false
+                      # All of the following are optional.
+                      reply_with_url: true,   # defaults to false
+                      debug: true,            # defaults to false
+                  },
+                  '##other-channel': {
+                      # ... config for another channel
+                  },
               }]
 ```
 

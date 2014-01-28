@@ -107,7 +107,6 @@ sub S_public {
 
     my %post_args = (
         type  => 'text',
-        title => $title,
         body  => "<$nick> $text",
         caption => "<$nick> $text",
         tags  => $tags_spec,
@@ -132,7 +131,6 @@ sub S_public {
     }
 
     $post_args{$_} = HTML::Entities::encode_entities($post_args{$_}) for qw(
-        title
         body
         caption
         tags

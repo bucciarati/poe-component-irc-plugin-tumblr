@@ -42,7 +42,7 @@ sub new {
         next unless $channel_settings->{debug};
 
         my @settings_to_dump = sort grep !/\A_/, keys %$channel_settings;
-        warn "API for @{[ $channel_settings->{_blog}->base_hostname ]} loaded (",
+        warn "API for $channel_name -> @{[ $channel_settings->{_blog}->base_hostname ]} loaded (",
             (join ', ', map( $_ . ":" . ($channel_settings->{$_} || 0), @settings_to_dump )),
         ")\n";
     }

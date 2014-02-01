@@ -33,21 +33,76 @@ sub new {
 
         $this_channel_settings->{_blog} = $this_channel_settings->{_tumblr}->blog($args{$channel_name}->{blog});
 
-        $this_channel_settings->{debug} = $args{$channel_name}->{debug};
+        $this_channel_settings->{debug}          = $args{$channel_name}->{debug};
         $this_channel_settings->{reply_with_url} = $args{$channel_name}->{reply_with_url};
+        $this_channel_settings->{hide_nicks}     = $args{$channel_name}->{hide_nicks};
+        $this_channel_settings->{nick_mapfile}   = $args{$channel_name}->{nick_mapfile};
+        $this_channel_settings->{nick_map}       = $args{$channel_name}->{nick_map} || {};
     }
 
     foreach my $channel_name ( sort keys %{$self->{channel_settings}} ){
         my $channel_settings = $self->{channel_settings}{$channel_name};
+        my $base_hostname = $channel_settings->{_blog}->base_hostname;
+
+        if ( my $hiding_method = $channel_settings->{hide_nicks} ){
+            if ( $hiding_method eq 'mapfile' ){
+                my $mapfile = $channel_settings->{nick_mapfile};
+                warn "loading $channel_name nick_mapfile from '$mapfile'\n" if $channel_settings->{debug};
+
+                open my $fh, '<', $mapfile;
+                while (my $line = <$fh>) {
+                    chomp $line;
+                    my $initial = lc substr($line, 0, 1);
+
+                    push @{ $channel_settings->{_nick_mapfile}{$initial} }, $line;
+                }
+                $fh->close;
+            } elsif ($hiding_method eq 'map'){
+                my $map = $channel_settings->{nick_map};
+            } else {
+                warn "Posts to $base_hostname will be from <Anonymous>\n" if $channel_settings->{debug};
+            }
+        }
+
         next unless $channel_settings->{debug};
 
         my @settings_to_dump = sort grep !/\A_/, keys %$channel_settings;
-        warn "API for $channel_name -> @{[ $channel_settings->{_blog}->base_hostname ]} loaded (",
+        warn "API for $channel_name -> $base_hostname (",
             (join ', ', map( $_ . ":" . ($channel_settings->{$_} || 0), @settings_to_dump )),
         ")\n";
     }
 
     return $self;
+}
+
+sub _nick_from_map {
+    my ($channel_settings, $original_nick) = @_;
+
+    my $map_method = $channel_settings->{hide_nicks};
+    my $obfuscated_nick = ({
+        'map' => sub {
+            my $map = $channel_settings->{nick_map};
+
+            return $map->{lc $original_nick} || 'Guest';
+        },
+        'mapfile' => sub {
+            my $initial = lc substr($original_nick, 0, 1);
+            my $map = $channel_settings->{_nick_mapfile};
+
+            return "$initial***" unless
+                exists $map->{$initial}
+                && ref $map->{$initial} eq 'ARRAY'
+                && scalar @{ $map->{$initial} };
+
+            my $i = int(rand() * scalar @{ $map->{$initial} });
+
+            # warn $initial, ' ', $i, ' ', scalar @{ $map->{$initial} }, "\n";
+
+            return $map->{$initial}->[$i];
+        },
+    }->{$map_method} || sub {'Anonymous'})->();
+
+    return $obfuscated_nick;
 }
 
 sub PCI_register {
@@ -76,6 +131,10 @@ sub S_public {
 
     my $text = $$message;
     Encode::_utf8_on( $text );
+
+    if ( $channel_settings->{hide_nicks} ){
+        $nick = _nick_from_map( $channel_settings, $nick );
+    }
 
     # make it possible to import old entries from e.g. irssi logs
     # see e.g. contrib/log-importer-irssi.pl for an example usage

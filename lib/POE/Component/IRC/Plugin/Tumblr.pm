@@ -38,6 +38,10 @@ sub new {
         $this_channel_settings->{hide_nicks}     = $args{$channel_name}->{hide_nicks};
         $this_channel_settings->{nick_mapfile}   = $args{$channel_name}->{nick_mapfile};
         $this_channel_settings->{nick_map}       = $args{$channel_name}->{nick_map} || {};
+
+        $this_channel_settings->{otr_support} = exists $args{$channel_name}->{otr_support}
+            ? $args{$channel_name}->{otr_support}
+            : 1;
     }
 
     foreach my $channel_name ( sort keys %{$self->{channel_settings}} ){
@@ -161,7 +165,7 @@ sub S_public {
     if ( my @tags = $title =~ / \[ ([^\]]+) \] /gix ){
         # a tag of [otr] (case insensitive) means that we
         # should *NOT* publish the URL, it's off the record.
-        if ( grep +(lc $_ eq "otr"), @tags ){
+        if ( $channel_settings->{otr_support} && grep +(lc $_ eq "otr"), @tags ){
             return PCI_EAT_NONE;
         }
 

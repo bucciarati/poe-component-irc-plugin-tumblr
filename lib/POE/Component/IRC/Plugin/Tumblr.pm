@@ -139,6 +139,7 @@ sub S_public {
     if ( $channel_settings->{hide_nicks} ){
         $nick = _nick_from_map( $channel_settings, $nick );
     }
+    Encode::_utf8_on( $nick );
 
     # make it possible to import old entries from e.g. irssi logs
     # see e.g. contrib/log-importer-irssi.pl for an example usage

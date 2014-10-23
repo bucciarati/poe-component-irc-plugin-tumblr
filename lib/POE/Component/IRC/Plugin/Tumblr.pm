@@ -42,6 +42,10 @@ sub new {
         $this_channel_settings->{otr_support} = exists $args{$channel_name}->{otr_support}
             ? $args{$channel_name}->{otr_support}
             : 1;
+
+        $this_channel_settings->{otr_url_regexes} = exists $args{$channel_name}->{otr_url_regexes}
+            ? [ map qr($_), @{ $args{$channel_name}->{otr_url_regexes} } ]
+            : [];
     }
 
     foreach my $channel_name ( sort keys %{$self->{channel_settings}} ){
@@ -152,6 +156,13 @@ sub S_public {
     $post =~ s/ \s* \# \s* //x;
     s/^\s+//, s/\s+$// for $pre, $post;
     warn "considering it ($pre)($text)($post)\n" if $channel_settings->{debug};
+
+    for my $otr_url_regex ( @{ $channel_settings->{otr_url_regexes} } ){
+        if ( $capture_url =~ $otr_url_regex ){
+            warn "url <$capture_url> matches <$otr_url_regex>\n";
+            return PCI_EAT_NONE;
+        }
+    }
 
     my $title = '';
     if ( $pre ){

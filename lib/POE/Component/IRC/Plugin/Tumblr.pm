@@ -196,7 +196,8 @@ sub S_public {
     );
 
     if (
-        $capture_url =~ m# ( https?:// (?:(?:www\.)?youtube\.com | youtu\.be) / \S+ ) #ix
+        $capture_url =~ m# ( https?:// (?:(?:www\.)? youtube\.com ) /watch \b \S+ ) #ix
+     || $capture_url =~ m# ( https?:// (?: youtu\.be ) / \S+ ) #ix
      || $capture_url =~ m# ( https?:// vimeo\.com / \S+ ) #ix
     ) {
         my $vid_url = $1;

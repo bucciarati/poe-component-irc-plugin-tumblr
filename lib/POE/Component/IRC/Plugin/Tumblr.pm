@@ -204,7 +204,7 @@ sub S_public {
 
         $post_args{type} = 'video';
         $post_args{embed} = $vid_url;
-    } elsif ( $capture_url =~ m# \. ( jpe?g | gif | png ) (?::large)? \z #ix ) {
+    } elsif ( $capture_url =~ m# \. ( jpe?g | gif | png ) (?::large)? (?:\?.*)? \z #ix ) {
 
         $post_args{type} = 'photo';
         $post_args{source} = $capture_url;

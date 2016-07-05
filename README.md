@@ -48,6 +48,8 @@ networks:
                       # All of the following are optional.
                       reply_with_url: true,   # defaults to false
                       debug: true,            # defaults to false
+                      hide_nicks:   'mapfile',                  # defaults to not being set
+                      nick_mapfile: '/usr/share/dict/english',  # only makes sense when hide_nicks is 'mapfile'
                   },
                   '##other-channel': {
                       # ... config for another channel
@@ -63,6 +65,10 @@ When `reply_with_url` is true, the bot will reply with the post URL, like so:
 (needless to say, this gets tedious when many links get posted to a channel, so it defaults to false).
 
 When `debug` is true, the bot will output various diagnostic messages to the console.  As the name suggests, it's only useful for debugging/troubleshooting.
+
+When `hide_nicks` is not specified, the bot will use the actual IRC nicknames in the post.
+
+When `hide_nicks` is `mapfile`, it will use the lines of `nick_mapfile` to conceal the identity of the poster.
 
 About
 =====

@@ -230,15 +230,25 @@ sub S_public {
                 "Posted at http://@{[ $channel_settings->{_blog}->base_hostname ]}/post/$id",
             ) if $channel_settings->{reply_with_url};
         } elsif ( my $error = $channel_settings->{_blog}->error ) {
-            # posting big (>2MB) .gifs tends to fail;  retry as a text post
+            # Things that fail:
+            # - posting big (>2MB) .gifs
+            # - posting resources with non-image Content-Type
+            # so, we retry failed image posts as text posts
             if ( $post_args{type} eq 'photo' ) {
                 $post_args{type} = 'text';
 
+                warn "re-posting <@{[ Dumper(\%post_args) ]}>\n" if $channel_settings->{debug};
                 my $retry_response = $channel_settings->{_blog}->post(
                     %post_args,
                 );
 
-                if ( my $retry_error = $channel_settings->{_blog}->error ) {
+                if ( my $id = $retry_response->{id} ) {
+                    # seems to have succeeded
+                    $irc->yield(
+                        notice => $channel,
+                        "Posted at http://@{[ $channel_settings->{_blog}->base_hostname ]}/post/$id",
+                    ) if $channel_settings->{reply_with_url};
+                } elsif ( my $retry_error = $channel_settings->{_blog}->error ) {
                     $irc->yield(
                         notice => $channel,
                         "Tumblr returned an error while posting: [@{ $error->reasons }] and while re-posting: [@{ $retry_error->reasons }]"

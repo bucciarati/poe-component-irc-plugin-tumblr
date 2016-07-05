@@ -6,6 +6,7 @@ This `POE::Component::IRC` plugin makes it trivial for IRC bots to sit on your c
 There's specific support for:
  - Youtube and Vimeo video URLs which will be posted as "video" blog entries
  - image links (guessed by the URL) which will be posted as "photo" blog entries
+ - posting changes to topic
 
 and all other URLs will be posted as "text" blog entries.  In all cases the text around the link will be used as post title/caption/body depending on the entry type.
 

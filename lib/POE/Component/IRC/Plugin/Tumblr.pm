@@ -117,6 +117,7 @@ sub PCI_register {
     my ($self, $irc) = @_;
 
     $irc->plugin_register($self, 'SERVER', 'public');
+    $irc->plugin_register($self, 'SERVER', 'topic');
 
     return 1;
 }
@@ -270,6 +271,51 @@ sub S_public {
             "->post() died: [$error_text]",
         );
     };
+
+    return PCI_EAT_NONE;
+}
+
+sub S_topic {
+    my ($self, $irc) = (shift, shift);
+
+    my $nick = ${ +shift };
+    $nick =~ s/!.*$//;
+
+    my $channel = ${+shift};
+    my $lc_channel = lc $channel;
+    my $channel_settings = $self->{channel_settings}{$lc_channel};
+
+    my $message = shift;
+
+    my $text = $$message;
+    Encode::_utf8_on( $text );
+
+    warn "topic on <$lc_channel> set by <$nick> to <$text>\n";
+
+    my %post_args = (
+        type  => 'text',
+        body  => "$text",
+        caption => "$text",
+        tags => 'topic',
+    );
+
+    $post_args{$_} = HTML::Entities::encode_entities($post_args{$_}) for qw(
+        body
+        caption
+    );
+    warn "posting <@{[ Dumper(\%post_args) ]}>\n" if $channel_settings->{debug};
+
+    my $response = $channel_settings->{_blog}->post(
+        %post_args,
+    );
+
+    if ( my $id = $response->{id} ){
+        # seems to have succeeded
+        $irc->yield(
+            notice => $channel,
+            "Posted at http://@{[ $channel_settings->{_blog}->base_hostname ]}/post/$id",
+        ) if $channel_settings->{reply_with_url};
+    }
 
     return PCI_EAT_NONE;
 }

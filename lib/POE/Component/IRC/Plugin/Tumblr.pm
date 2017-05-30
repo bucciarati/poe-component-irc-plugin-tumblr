@@ -38,6 +38,7 @@ sub new {
         $this_channel_settings->{hide_nicks}     = $args{$channel_name}->{hide_nicks};
         $this_channel_settings->{nick_mapfile}   = $args{$channel_name}->{nick_mapfile};
         $this_channel_settings->{nick_map}       = $args{$channel_name}->{nick_map} || {};
+        $this_channel_settings->{preserve_nicks_in_context} = $args{$channel_name}->{preserve_nicks_in_context};
 
         $this_channel_settings->{otr_support} = exists $args{$channel_name}->{otr_support}
             ? $args{$channel_name}->{otr_support}
@@ -183,6 +184,13 @@ sub S_public {
         }
 
         $tags_spec = join ',', @tags;
+    }
+
+    unless ( $channel_settings->{preserve_nicks_in_context} ){
+        my $bot_name = $irc->nick_name;
+        foreach my $someones_nick_name ( $irc->channel_list( $lc_channel ) ){
+            $text =~ s/\Q$someones_nick_name\E/$bot_name/ig;
+        }
     }
 
     my %post_args = (

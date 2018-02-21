@@ -146,6 +146,7 @@ sub PCI_register {
     my ($self, $irc) = @_;
 
     $irc->plugin_register($self, 'SERVER', 'public');
+    $irc->plugin_register($self, 'SERVER', 'ctcp_action');
     $irc->plugin_register($self, 'SERVER', 'topic');
 
     # uncomment to discover signal names
@@ -164,6 +165,10 @@ sub _default {
     my $channel = ${ +shift };
     $self->_debug($irc, $channel, "_default called for <$event> on <$channel>");
     return PCI_EAT_NONE;
+}
+
+sub S_ctcp_action {
+    goto \&S_public;
 }
 
 sub S_public {

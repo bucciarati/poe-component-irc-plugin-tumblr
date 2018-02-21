@@ -34,6 +34,7 @@ sub new {
         $this_channel_settings->{_blog} = $this_channel_settings->{_tumblr}->blog($args{$channel_name}->{blog});
 
         $this_channel_settings->{debug}          = $args{$channel_name}->{debug};
+        $this_channel_settings->{debug_channel}  = $args{$channel_name}->{debug_channel};
         $this_channel_settings->{reply_with_url} = $args{$channel_name}->{reply_with_url};
         $this_channel_settings->{hide_nicks}     = $args{$channel_name}->{hide_nicks};
         $this_channel_settings->{nick_mapfile}   = $args{$channel_name}->{nick_mapfile};
@@ -112,6 +113,33 @@ sub _nick_from_map {
     }->{$map_method} || sub {'Anonymous'})->();
 
     return $obfuscated_nick;
+}
+
+sub _debug {
+    my ($self, $irc, $channel, $message) = @_;
+
+    my $lc_channel = lc $channel;
+    my $channel_settings = $self->{channel_settings}{$lc_channel};
+
+    return unless $channel_settings->{debug};
+
+    if ( ref $message ){
+        local $Data::Dumper::Terse = 1;
+        local $Data::Dumper::Indent = 0;
+        $message = Data::Dumper::Dumper( $message );
+    }
+    $message =~ s/\n/ /g;
+
+    if ( my $debug_channel = $channel_settings->{debug_channel} ){
+        $lc_channel = $debug_channel;
+
+        $irc->yield(
+            notice => $lc_channel,
+            $message
+        );
+    } else {
+        warn "[$lc_channel] $message\n";
+    }
 }
 
 sub PCI_register {

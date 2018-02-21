@@ -151,6 +151,26 @@ sub S_public {
     # see e.g. contrib/log-importer-irssi.pl for an example usage
     print "$self->{date} <$nick> $text\n" if $self->{date};
 
+    # normalize from spotify http/https link to spotify: uri
+    $text =~ s#\b https?://open\.spotify\.com/track/([[:alnum:]]+) \b #spotify:track:$1#ixg;
+
+    # TODO: http://open.spotify.com/track/48WNlfPjunceFkIQq7z0bV -> spotify:track:48WNlfPjunceFkIQq7z0bV
+    # spotify:(album|artist|track)
+    if ( $text =~ m# \b (spotify:[^:]+:[a-zA-Z0-9]+) \b #ix ){
+        my $capture_url = $1;
+        warn "spotify-captured <$capture_url>\n" if $channel_settings->{debug};
+        my %args = (
+            type => 'text',
+            format => 'html',
+            body => qq[<iframe src="https://embed.spotify.com/?uri=$capture_url" width="300" height="380" frameborder="0" allowtransparency="true"></iframe>],
+        );
+
+        # XXX this posts without context
+        $channel_settings->{_blog}->post(
+            %args
+        );
+    }
+
     unless ( $text =~ m#(.*) (https?:// [\S]+) (.*)#ix ) {
         return PCI_EAT_NONE;
     }

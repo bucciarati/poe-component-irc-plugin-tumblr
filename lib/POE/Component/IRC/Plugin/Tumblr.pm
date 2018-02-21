@@ -186,7 +186,7 @@ sub S_public {
     # spotify:(album|artist|track)
     if ( $text =~ m# \b (spotify:[^:]+:[a-zA-Z0-9]+) \b #ix ){
         my $capture_url = $1;
-        warn "spotify-captured <$capture_url>\n" if $channel_settings->{debug};
+        $self->_debug($irc, $channel, "spotify-captured <$capture_url>");
         my %args = (
             type => 'text',
             format => 'html',
@@ -205,11 +205,11 @@ sub S_public {
     my ($pre, $capture_url, $post) = ($1, $2, $3);
     $post =~ s/ \s* \# \s* //x;
     s/^\s+//, s/\s+$// for $pre, $post;
-    warn "considering it ($pre)($text)($post)\n" if $channel_settings->{debug};
+    $self->_debug($irc, $channel, "considering it ($pre)($text)($post)");
 
     for my $otr_url_regex ( @{ $channel_settings->{otr_url_regexes} } ){
         if ( $capture_url =~ $otr_url_regex ){
-            warn "url <$capture_url> matches <$otr_url_regex>\n";
+            $self->_debug($irc, $channel, "url <$capture_url> matches <$otr_url_regex>");
             return PCI_EAT_NONE;
         }
     }
@@ -272,7 +272,7 @@ sub S_public {
         caption
         tags
     );
-    warn "posting <@{[ Dumper(\%post_args) ]}>\n" if $channel_settings->{debug};
+    $self->_debug( $irc, $lc_channel, "posting <@{[ Dumper(\%post_args) ]}>\n" );
 
     eval {
         my $response = $channel_settings->{_blog}->post(
@@ -293,7 +293,7 @@ sub S_public {
             if ( $post_args{type} eq 'photo' ) {
                 $post_args{type} = 'text';
 
-                warn "re-posting <@{[ Dumper(\%post_args) ]}>\n" if $channel_settings->{debug};
+                $self->_debug($irc, $lc_channel, "re-posting <@{[ Dumper(\%post_args) ]}>");
                 my $retry_response = $channel_settings->{_blog}->post(
                     %post_args,
                 );
@@ -315,6 +315,8 @@ sub S_public {
                     notice => $channel,
                     "Tumblr returned an error while posting: [@{ $error->reasons }]"
                 );
+
+                $self->_debug( $irc, $channel, { response => $response, error => $error } );
             }
         } else {
             my $debug = Data::Dumper::Dumper( $response );
@@ -356,7 +358,7 @@ sub S_topic {
     my $text = $$message;
     Encode::_utf8_on( $text );
 
-    warn "topic on <$lc_channel> set by <$nick> to <$text>\n";
+    $self->_debug($irc, $channel, "topic on <$lc_channel> set by <$nick> to <$text>");
 
     my %post_args = (
         type  => 'text',
@@ -369,7 +371,7 @@ sub S_topic {
         body
         caption
     );
-    warn "posting <@{[ Dumper(\%post_args) ]}>\n" if $channel_settings->{debug};
+    $self->_debug($irc, $lc_channel, "posting <@{[ Dumper(\%post_args) ]}>");
 
     my $response = $channel_settings->{_blog}->post(
         %post_args,

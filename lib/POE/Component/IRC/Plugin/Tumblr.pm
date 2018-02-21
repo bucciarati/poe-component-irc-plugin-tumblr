@@ -148,11 +148,22 @@ sub PCI_register {
     $irc->plugin_register($self, 'SERVER', 'public');
     $irc->plugin_register($self, 'SERVER', 'topic');
 
+    # uncomment to discover signal names
+    # $irc->plugin_register($self, 'SERVER', 'all');
+
     return 1;
 }
 
 sub PCI_unregister {
     return 1;
+}
+
+sub _default {
+    my ($self, $irc, $event) = (shift, shift, shift);
+    warn "[w] _default called for <$event>\n";
+    my $channel = ${ +shift };
+    $self->_debug($irc, $channel, "_default called for <$event> on <$channel>");
+    return PCI_EAT_NONE;
 }
 
 sub S_public {
